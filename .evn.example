@@ -1,0 +1,3 @@
+PINECONE_API_KEY = "your-pinecone-api-key-here"
+PINECONE_INDEX_NAME = "pinecone-index-name-here"
+PINECONE_NAMESPACE = "pineone-name-space-here"
