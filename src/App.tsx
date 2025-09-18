@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { ChatInterface } from './components/ChatInterface';
 import { processPDFFiles } from './utils/pdfProcessor';
+import { processDocumentsForPinecone } from './utils/documentProcessor';
 import { OpenAIClient } from './utils/openaiClient';
 import { AppState, ChatMessage, PDFDocument } from './types';
 
@@ -33,8 +34,29 @@ function App() {
     setState(prev => ({ ...prev, isProcessing: true, botReady: false }));
     
     try {
-      // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const pineconeConfig = {
+        apiKey: import.meta.env.VITE_PINECONE_API_KEY || '',
+        indexName: import.meta.env.VITE_PINECONE_INDEX_NAME || '',
+        namespace: import.meta.env.VITE_PINECONE_NAMESPACE || ''
+      };
+      
+      // Check if Pinecone is configured
+      if (pineconeConfig.apiKey && pineconeConfig.indexName) {
+        console.log('Processing documents with Pinecone...');
+        const success = await processDocumentsForPinecone(
+          state.documents,
+          state.openaiApiKey,
+          pineconeConfig
+        );
+        
+        if (!success) {
+          throw new Error('Failed to process documents with Pinecone');
+        }
+      } else {
+        console.log('Pinecone not configured, using mock processing...');
+        // Simulate processing time for mock mode
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
       
       setState(prev => ({ 
         ...prev, 
@@ -68,12 +90,25 @@ function App() {
       const client = new OpenAIClient(state.openaiApiKey);
       const selectedDoc = state.documents.find(doc => doc.name === state.selectedDocument);
       
+      const pineconeConfig = {
+        apiKey: import.meta.env.VITE_PINECONE_API_KEY || '',
+        indexName: import.meta.env.VITE_PINECONE_INDEX_NAME || '',
+        namespace: import.meta.env.VITE_PINECONE_NAMESPACE || ''
+      };
+      
+      
       if (!selectedDoc) {
         throw new Error('Selected document not found');
       }
 
       const context = client.findRelevantContext(message, selectedDoc);
-      const response = await client.generateResponse(message, context, state.selectedModel);
+      const response = await client.generateResponse(
+        message, 
+        context, 
+        state.selectedModel,
+        state.selectedDocument,
+        pineconeConfig.apiKey ? pineconeConfig : undefined
+      );
 
       const newMessage: ChatMessage = {
         id: Date.now().toString(),

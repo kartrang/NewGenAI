@@ -1,4 +1,5 @@
 import { PDFDocument } from '../types';
+import { queryDocuments } from './documentProcessor';
 
 export class OpenAIClient {
   private apiKey: string;
@@ -7,15 +8,34 @@ export class OpenAIClient {
     this.apiKey = apiKey;
   }
   
-  async generateResponse(query: string, context: string, model: string = 'gpt-3.5-turbo'): Promise<string> {
+  async generateResponse(
+    query: string, 
+    context: string, 
+    model: string = 'gpt-3.5-turbo',
+    selectedDocument?: string,
+    pineconeConfig?: { apiKey: string; indexName: string; namespace: string }
+  ): Promise<string> {
     if (!this.apiKey) {
       throw new Error('OpenAI API key is required');
+    }
+    
+    // If Pinecone config is provided, use it to get relevant context
+    let relevantContext = context;
+    if (pineconeConfig && selectedDocument) {
+      try {
+        const pineconeResults = await queryDocuments(query, selectedDocument, this.apiKey, pineconeConfig);
+        if (pineconeResults.length > 0) {
+          relevantContext = pineconeResults.join('\n\n');
+        }
+      } catch (error) {
+        console.warn('Failed to query Pinecone, using fallback context:', error);
+      }
     }
     
     const prompt = `Based on the following document context, please answer the user's question. If the answer cannot be found in the context, please say so.
 
 Context:
-${context}
+${relevantContext}
 
 Question: ${query}
 

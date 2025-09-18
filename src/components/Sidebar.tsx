@@ -35,6 +35,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
       
       <div className="space-y-6">
+        {/* Pinecone Status */}
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <div className="text-blue-800 text-sm">
+            <div className="font-medium mb-1">Vector Database Status</div>
+            {import.meta.env.VITE_PINECONE_API_KEY ? (
+              <div className="flex items-center gap-2 text-green-700">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                Pinecone configured
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-orange-700">
+                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                Using mock mode (add Pinecone keys to .env)
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* API Key Input */}
         <div>
           <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
